@@ -4,6 +4,8 @@ import math
 import re
 from collections import Counter
 
+import db
+
 DATA_PATH = "data/pages.json"
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 STOPWORDS = {
@@ -107,4 +109,8 @@ def retrieve(query, index, k=4):
 
 
 def load(path=DATA_PATH):
+    if db.available():
+        pages = db.get_pages()  # [{url, title, text}]
+        if pages:
+            return build_index(pages)
     return build_index(load_pages(path))

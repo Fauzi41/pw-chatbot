@@ -8,6 +8,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+import db
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -27,20 +29,29 @@ def clean_html(html):
     return text.strip()
 
 
+def fetch_one(url, ua):
+    """Fetch + extract one page. Returns (url, title, text). Raises on failure."""
+    r = requests.get(
+        url,
+        headers={"User-Agent": ua, "Accept": "text/html,application/xhtml+xml"},
+        timeout=(15, 60),
+    )
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "html.parser")
+    title = (soup.title.string.strip() if soup.title and soup.title.string else "")
+    return url, title, clean_html(r.text)
+
+
 def fetch_all(sources, delay_s):
     pages, failed = [], []
     for i, url in enumerate(sources["urls"]):
         if i > 0:
             time.sleep(delay_s)  # robots.txt: Crawl-delay: 10
         try:
-            r = requests.get(
-                url,
-                headers={"User-Agent": sources["user_agent"], "Accept": "text/html,application/xhtml+xml"},
-                timeout=(15, 60),
-            )
-            r.raise_for_status()
-            text = clean_html(r.text)
-            pages.append({"url": url, "title": (BeautifulSoup(r.text, "html.parser").title.string if BeautifulSoup(r.text, "html.parser").title else "").strip(), "text": text})
+            url, title, text = fetch_one(url, sources["user_agent"])
+            if db.available():
+                db.upsert_source(url, title, text)
+            pages.append({"url": url, "title": title, "text": text})
             print(f"OK  [{len(text):6d} chars] {url}", flush=True)
         except Exception as e:
             failed.append({"url": url, "error": str(e)})

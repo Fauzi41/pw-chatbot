@@ -34,9 +34,18 @@ export LLM_MODEL=                      # optional override
 ## API
 
 - `GET /` — chat UI
-- `POST /chat` — `{"message": "...", "history": [{role, content}, ...]}` → `{"answer", "sources": [{url, score}]}`
+- `POST /chat` — `{"message", "history", "session"}` → `{"answer", "disclaimer", "sources", "ms"}`; every exchange is stored
 - `GET /health` — `{"ok", "chunks", "llm"}`
 - `POST /refresh` — re-scrape + rebuild index, requires `Authorization: Bearer $REFRESH_TOKEN`
+- `GET /admin` — admin panel (`ADMIN_TOKEN`): analytics, chat history, unanswered log, add source by URL, enable/disable + re-scrape
+
+## Storage (Neon Postgres)
+
+`DATABASE_URL` switches everything to Postgres; without it the bot falls back to
+`data/pages.json`. Tables are created on startup (`sources`, `messages`) — the
+source list is seeded from `sources.json` and fetched in the background on first
+boot. All chat turns (question, answer, sources, disclaimer, latency, unanswered
+flag) and the admin log live in `messages`; analytics are SQL aggregates.
 
 ## Tests
 

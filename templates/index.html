@@ -28,11 +28,14 @@
       <button type="submit">Send</button>
     </form>
     <div class="sources" id="sources"></div>
+    <p class="footnote"><a href="/admin">Admin</a></p>
   </main>
   <script>
     const log = document.getElementById('log'), form = document.getElementById('form'),
           input = document.getElementById('input'), srcEl = document.getElementById('sources');
     let history = [];
+    const session = localStorage.getItem('pw_session') ||
+      (() => { const id = crypto.randomUUID(); localStorage.setItem('pw_session', id); return id; })();
 
     add('bot', 'Hello! Ask me about the ITC alternative cancer treatment packages in Tijuana, prices, or what\'s included.');
     document.querySelectorAll('.chip').forEach(c =>
@@ -48,7 +51,7 @@
       input.value = '';
       add('user', message);
       const res = await fetch('/chat', {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({message, history: history.slice(-6)})});
+        body: JSON.stringify({message, history: history.slice(-6), session})});
       const data = await res.json();
       add('bot', data.answer || 'Sorry, something went wrong.', data.disclaimer);
       if (data.sources && data.sources.length) {

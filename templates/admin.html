@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin · PlacidWay Chatbot</title>
+  <style>
+    :root { --primary:#E85A4F; --primary-press:#cf4a3f; --primary-soft:#FDEFEE; --ink:#18120f;
+            --text:#3a312c; --muted:#6f6258; --line:#EEEEEE; --surface:#fff; --bg:#fffdf9; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+           background:var(--bg); color:var(--text); }
+    header { background:var(--surface); border-bottom:1px solid var(--line); padding:12px 0; }
+    .wrap { max-width:1000px; margin:0 auto; padding:0 16px; display:flex; align-items:center; gap:14px; }
+    .logo { height:32px; }
+    h1 { font-size:1rem; color:var(--ink); margin:0; }
+    h2 { font-size:.95rem; color:var(--ink); margin:26px 0 10px; }
+    main { max-width:1000px; margin:0 auto; padding:18px 16px 60px; }
+    .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:18px; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+    .card .n { font-size:1.5rem; font-weight:700; color:var(--ink); }
+    .card .l { font-size:.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    table { width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line);
+            border-radius:12px; overflow:hidden; font-size:.83rem; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { background:#faf7f2; color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; }
+    tr:last-child td { border-bottom:0; }
+    a { color:var(--primary-press); }
+    input[type=text], input[type=password] {
+      padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; width:100%;
+    }
+    button { border:0; border-radius:8px; background:var(--primary); color:#fff; padding:10px 18px;
+             font-weight:600; cursor:pointer; font-size:.85rem; }
+    button:hover { background:var(--primary-press); }
+    button.ghost { background:var(--surface); color:var(--text); border:1px solid var(--line); }
+    form.row { display:flex; gap:8px; }
+    .muted { color:var(--muted); font-size:.8rem; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.7rem; }
+    .on { background:var(--primary-soft); color:var(--primary-press); }
+    .off { background:#f4f4f4; color:#999; }
+    .bar { display:flex; align-items:center; gap:8px; margin:6px 0; font-size:.8rem; }
+    .bar .fill { height:10px; background:var(--primary); border-radius:999px; min-width:2px; }
+    .login { max-width:340px; margin:10vh auto; background:var(--surface); border:1px solid var(--line);
+             border-radius:14px; padding:24px; display:grid; gap:12px; }
+    .err { color:var(--primary-press); font-size:.82rem; }
+    .ok { color:#2e7d32; font-size:.82rem; }
+    .qa { max-width:520px; }
+    .qa .a { color:var(--muted); margin-top:2px; }
+  </style>
+</head>
+<body>
+<header><div class="wrap">
+  <img class="logo" src="/static/placidway-logo.png" alt="PlacidWay">
+  <h1>Chatbot Admin</h1>
+  <span style="flex:1"></span>
+  {% if view == 'dashboard' %}<a href="/admin/logout" class="muted">Log out</a> · <a href="/" class="muted">Open chat</a>{% endif %}
+</div></header>
+
+<main>
+{% if view == 'login' %}
+  <form class="login" method="post" action="/admin/login">
+    <h1 style="margin:0">Admin login</h1>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <input type="password" name="token" placeholder="ADMIN_TOKEN" autofocus required>
+    <button type="submit">Sign in</button>
+  </form>
+{% else %}
+  {% if msg %}<div class="ok">{{ msg }}</div>{% endif %}
+
+  <div class="cards">
+    <div class="card"><div class="n">{{ totals.total or 0 }}</div><div class="l">Questions</div></div>
+    <div class="card"><div class="n">{{ totals.today or 0 }}</div><div class="l">Today</div></div>
+    <div class="card"><div class="n">{{ totals.avg_ms or 0 }} ms</div><div class="l">Avg response</div></div>
+    <div class="card"><div class="n">{{ totals.unanswered or 0 }}</div><div class="l">Unanswered</div></div>
+    <div class="card"><div class="n">{{ sources|length }}</div><div class="l">Sources</div></div>
+    <div class="card"><div class="n">{{ chunks }}</div><div class="l">Index chunks</div></div>
+  </div>
+
+  <h2>Last 7 days</h2>
+  {% set mx = (days|map(attribute='n')|max) if days else 1 %}
+  {% for d in days %}
+    <div class="bar"><span style="width:90px">{{ d.d }}</span>
+      <div class="fill" style="width:{{ (d.n / mx * 320)|round|int }}px"></div>
+      <span class="muted">{{ d.n }}</span></div>
+  {% else %}
+    <div class="muted">No traffic yet.</div>
+  {% endfor %}
+
+  <h2>Add source by URL</h2>
+  <form class="row" method="post" action="/admin/sources">
+    <input type="text" name="url" placeholder="https://www.placidway.com/package/..." required>
+    <button type="submit">Fetch &amp; index</button>
+  </form>
+  <div class="muted" style="margin-top:6px">Page is fetched, text extracted and added to the knowledge base immediately.</div>
+
+  <h2>Sources</h2>
+  <table>
+    <tr><th>#</th><th>URL / title</th><th>Chars</th><th>Scraped</th><th>Status</th><th></th></tr>
+    {% for s in sources %}
+    <tr>
+      <td>{{ s.id }}</td>
+      <td><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title or s.url }}</a>
+          <div class="muted">{{ s.url }}</div></td>
+      <td>{{ s.chars or 0 }}</td>
+      <td class="muted">{{ s.last_scraped_at.strftime('%Y-%m-%d %H:%M') if s.last_scraped_at else '—' }}</td>
+      <td><span class="pill {{ 'on' if s.active else 'off' }}">{{ 'active' if s.active else 'off' }}</span></td>
+      <td><form method="post" action="/admin/sources/{{ s.id }}/toggle">
+            <input type="hidden" name="active" value="{{ 0 if s.active else 1 }}">
+            <button class="ghost" type="submit">{{ 'Disable' if s.active else 'Enable' }}</button>
+          </form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="/admin/refresh" style="margin-top:10px">
+    <button type="submit">Re-scrape all active sources</button>
+  </form>
+
+  <h2>Chat history</h2>
+  <table>
+    <tr><th>When</th><th>Session</th><th>Q / A</th><th>ms</th></tr>
+    {% for m in messages %}
+    <tr>
+      <td class="muted">{{ m.created_at.strftime('%m-%d %H:%M') }}</td>
+      <td class="muted">{{ m.session[:8] }}</td>
+      <td class="qa"><b>{{ m.question }}</b><div class="a">{{ (m.answer or '')[:260] }}</div></td>
+      <td class="muted">{{ m.ms }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No messages yet.</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Unanswered log (content gaps)</h2>
+  <table>
+    <tr><th>When</th><th>Question</th></tr>
+    {% for m in unanswered %}
+    <tr><td class="muted">{{ m.created_at.strftime('%m-%d %H:%M') }}</td><td>{{ m.question }}</td></tr>
+    {% else %}
+    <tr><td colspan="2" class="muted">Nothing unanswered. Good.</td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+</main>
+</body>
+</html>

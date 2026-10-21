@@ -1,12 +1,15 @@
 """Flask chat UI + JSON API for the PlacidWay knowledge chatbot."""
 import json
+import hmac
 import os
 import re
+import threading
 import time
 from collections import OrderedDict
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request
 
+import db
 import kb
 import llm
 
@@ -23,6 +26,7 @@ DISCLAIMER_RE = re.compile(
 
 HISTORY_LIMIT = 6  # keep last ~6 turns for follow-ups
 CACHE_MAX = 256  # question -> answer LRU; cleared on /refresh
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 _cache = OrderedDict()
 kb.index = None  # set on startup / /refresh
 
@@ -148,8 +152,18 @@ def chat():
     if not message:
         return jsonify({"error": "empty message"}), 400
     history = (data.get("history") or [])[-HISTORY_LIMIT:]
+    session = (data.get("session") or "anon")[:64]
+    t0 = time.time()
     answer, disclaimer, chunks = build_answer(message, history)
-    return jsonify({"answer": answer, "disclaimer": disclaimer, "sources": [{"url": c["url"], "score": c["score"]} for c in chunks]})
+    ms = int((time.time() - t0) * 1000)
+    src = [{"url": c["url"], "score": c["score"]} for c in chunks]
+    unanswered = not chunks and not refusal_for(message)
+    if db.available():
+        try:
+            db.save_message(session, message, answer, src, disclaimer, ms, unanswered)
+        except Exception as e:
+            print("[db] save_message failed:", e, flush=True)
+    return jsonify({"answer": answer, "disclaimer": disclaimer, "sources": src, "ms": ms})
 
 
 @app.route("/refresh", methods=["POST"])
@@ -165,6 +179,116 @@ def refresh():
     clear_cache()
     return jsonify({"ok": rc == 0, "chunks": len(kb.index["chunks"])})
 
+
+# ---------------- admin ----------------
+
+def admin_ok():
+    tok = request.cookies.get("admin_token", "")
+    return bool(ADMIN_TOKEN) and hmac.compare_digest(tok, ADMIN_TOKEN)
+
+
+@app.route("/admin")
+def admin():
+    if not admin_ok():
+        return render_template("admin.html", view="login", error=request.args.get("e"))
+    if not db.available():
+        return render_template("admin.html", view="login", error="DATABASE_URL not configured")
+    totals, days = db.totals()
+    return render_template(
+        "admin.html",
+        view="dashboard",
+        totals=totals,
+        days=days,
+        sources=db.list_sources(),
+        messages=db.recent_messages(60),
+        unanswered=db.unanswered_messages(60),
+        chunks=len(kb.index["chunks"]) if kb.index else 0,
+        msg=request.args.get("m"),
+    )
+
+
+@app.route("/admin/login", methods=["POST"])
+def admin_login():
+    if hmac.compare_digest(request.form.get("token", ""), ADMIN_TOKEN or "\x00"):
+        resp = redirect("/admin")
+        resp.set_cookie("admin_token", ADMIN_TOKEN, httponly=True, samesite="Lax")
+        return resp
+    return redirect("/admin?e=Wrong+token")
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    resp = redirect("/admin")
+    resp.delete_cookie("admin_token")
+    return resp
+
+
+@app.route("/admin/sources", methods=["POST"])
+def admin_add_source():
+    if not admin_ok() or not db.available():
+        return redirect("/admin")
+    import ingest
+
+    url = (request.form.get("url") or "").strip()
+    if not url.startswith(("http://", "https://")):
+        return redirect("/admin?m=Invalid+URL")
+    try:
+        srcs = ingest.load_sources()
+        url, title, text = ingest.fetch_one(url, srcs["user_agent"])
+        db.upsert_source(url, title, text)
+        kb.index = kb.load()
+        clear_cache()
+        return redirect(f"/admin?m=Added+{len(text)}+chars")
+    except Exception as e:
+        return redirect(f"/admin?m=Fetch+failed:+{str(e)[:80]}")
+
+
+@app.route("/admin/sources/<int:source_id>/toggle", methods=["POST"])
+def admin_toggle_source(source_id):
+    if not admin_ok() or not db.available():
+        return redirect("/admin")
+    db.set_source_active(source_id, request.form.get("active") == "1")
+    kb.index = kb.load()
+    clear_cache()
+    return redirect("/admin?m=Source+updated")
+
+
+@app.route("/admin/refresh", methods=["POST"])
+def admin_refresh():
+    if not admin_ok() or not db.available():
+        return redirect("/admin")
+    import ingest
+
+    ingest.main()
+    kb.index = kb.load()
+    clear_cache()
+    return redirect(f"/admin?m=Refreshed+{len(kb.index['chunks'])}+chunks")
+
+
+def _initial_ingest():
+    import ingest
+
+    ingest.main()
+    kb.index = kb.load()
+    clear_cache()
+
+
+def _bootstrap():
+    """Create tables; seed source URLs from sources.json; fetch content once in background."""
+    db.init()
+    if not db.available():
+        return
+    try:
+        if not db.list_sources():
+            import ingest
+
+            db.seed_from_file(ingest.load_sources())
+            threading.Thread(target=_initial_ingest, daemon=True).start()
+    except Exception as e:
+        print("[db] bootstrap:", e, flush=True)
+
+
+_bootstrap()
 
 if __name__ == "__main__":
     kb.index = kb.load()

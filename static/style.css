@@ -44,7 +44,11 @@ main {
   max-height: 56vh; min-height: 300px;
   overflow-y: auto;
   display: flex; flex-direction: column; gap: 12px;
-  padding: 4px 2px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(24, 18, 15, .04);
 }
 .msg {
   max-width: 78%;
@@ -107,3 +111,6 @@ button {
 button:hover { background: var(--primary-press); }
 .sources { color: var(--muted); font-size: .76rem; word-break: break-all; }
 .sources a { color: var(--muted); }
+.footnote { margin: 0; font-size: .76rem; text-align: right; }
+.footnote a { color: var(--muted); text-decoration: none; }
+.footnote a:hover { color: var(--primary); }
