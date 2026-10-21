@@ -67,3 +67,18 @@ def test_medical_refusal():
     kb.index = kb.build_index(PAGES)
     ans, disc, sources = app.build_answer("is this surgery safe for my diabetes")
     assert "doctor" in ans and sources == []
+
+
+def test_cache_serves_identical_question_once(monkeypatch):
+    app.clear_cache()
+    calls = []
+
+    def fake_chat(*a, **kw):
+        calls.append(1)
+        return "grounded answer"
+
+    monkeypatch.setattr(app.llm, "chat", fake_chat)
+    kb.index = kb.build_index(PAGES)
+    r1 = app.build_answer("how much does adenocarcinoma treatment cost")
+    r2 = app.build_answer("How much does adenocarcinoma treatment cost?")
+    assert r1 == r2 and len(calls) == 1

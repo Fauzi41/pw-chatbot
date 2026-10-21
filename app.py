@@ -3,6 +3,7 @@ import json
 import os
 import re
 import time
+from collections import OrderedDict
 
 from flask import Flask, jsonify, render_template, request
 
@@ -21,7 +22,26 @@ DISCLAIMER_RE = re.compile(
 )
 
 HISTORY_LIMIT = 6  # keep last ~6 turns for follow-ups
+CACHE_MAX = 256  # question -> answer LRU; cleared on /refresh
+_cache = OrderedDict()
 kb.index = None  # set on startup / /refresh
+
+
+def cached_key(question, history):
+    """Same question + same preceding user turn = same context -> same answer.
+    Normalized: case, whitespace, trailing punctuation ignored."""
+    norm = lambda s: re.sub(r"[?!.]+$", "", re.sub(r"\s+", " ", (s or "")).strip()).lower()
+    last = ""
+    if history:
+        for m in reversed(history):
+            if m.get("role") == "user":
+                last = norm(m.get("content"))
+                break
+    return (norm(question), last)
+
+
+def clear_cache():
+    _cache.clear()
 
 
 def split_disclaimer(text):
@@ -61,7 +81,20 @@ def log_unanswered(question):
 
 
 def build_answer(question, history=None):
-    """Full grounded pipeline. Returns (answer_text, disclaimer_or_None, sources)."""
+    """Full grounded pipeline. Returns (answer_text, disclaimer_or_None, sources).
+    Identical question + same previous user turn served from cache (no LLM call)."""
+    key = cached_key(question, history)
+    if key in _cache:
+        _cache.move_to_end(key)
+        return _cache[key]
+    result = _answer(question, history)
+    _cache[key] = result
+    if len(_cache) > CACHE_MAX:
+        _cache.popitem(last=False)
+    return result
+
+
+def _answer(question, history=None):
     if not kb.index:
         kb.index = kb.load()
     ref = refusal_for(question)
@@ -124,6 +157,7 @@ def refresh():
 
     rc = ingest.main()
     kb.index = kb.load()
+    clear_cache()
     return jsonify({"ok": rc == 0, "chunks": len(kb.index["chunks"])})
 
 
