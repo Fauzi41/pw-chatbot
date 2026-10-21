@@ -118,6 +118,3 @@ button {
 button:hover { background: var(--primary-press); }
 .sources { color: var(--muted); font-size: .76rem; word-break: break-all; }
 .sources a { color: var(--muted); }
-.footnote { margin: 0; font-size: .76rem; text-align: right; }
-.footnote a { color: var(--muted); text-decoration: none; }
-.footnote a:hover { color: var(--primary); }
