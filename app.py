@@ -80,21 +80,14 @@ def log_unanswered(question):
         pass
 
 
+def sig_of(chunks):
+    """Retrieval signature: same top chunks (any order) -> same grounded answer."""
+    return tuple(sorted((c["url"], hash(c["text"])) for c in chunks))
+
+
 def build_answer(question, history=None):
     """Full grounded pipeline. Returns (answer_text, disclaimer_or_None, sources).
-    Identical question + same previous user turn served from cache (no LLM call)."""
-    key = cached_key(question, history)
-    if key in _cache:
-        _cache.move_to_end(key)
-        return _cache[key]
-    result = _answer(question, history)
-    _cache[key] = result
-    if len(_cache) > CACHE_MAX:
-        _cache.popitem(last=False)
-    return result
-
-
-def _answer(question, history=None):
+    Same retrieved context + same previous user turn served from cache (no LLM call)."""
     if not kb.index:
         kb.index = kb.load()
     ref = refusal_for(question)
@@ -105,6 +98,18 @@ def _answer(question, history=None):
         prevs = [m["content"] for m in history if m["role"] == "user"][-3:]
         if prevs:
             chunks = kb.retrieve(" ".join(prevs + [question]), kb.index)
+    key = (sig_of(chunks), cached_key(question, history)[1])
+    if key in _cache:
+        _cache.move_to_end(key)
+        return _cache[key]
+    result = _answer(question, history, chunks)
+    _cache[key] = result
+    if len(_cache) > CACHE_MAX:
+        _cache.popitem(last=False)
+    return result
+
+
+def _answer(question, history, chunks):
     if not chunks:
         log_unanswered(question)
         return (

@@ -82,3 +82,18 @@ def test_cache_serves_identical_question_once(monkeypatch):
     r1 = app.build_answer("how much does adenocarcinoma treatment cost")
     r2 = app.build_answer("How much does adenocarcinoma treatment cost?")
     assert r1 == r2 and len(calls) == 1
+
+
+def test_cache_serves_paraphrase_once(monkeypatch):
+    app.clear_cache()
+    calls = []
+
+    def fake_chat(*a, **kw):
+        calls.append(1)
+        return "grounded answer"
+
+    monkeypatch.setattr(app.llm, "chat", fake_chat)
+    kb.index = kb.build_index(PAGES)
+    r1 = app.build_answer("how much cost treatment for adenocarcinoma in tijuana")
+    r2 = app.build_answer("cost of adenocarcinoma treatment tijuana")
+    assert r1 == r2 and len(calls) == 1
