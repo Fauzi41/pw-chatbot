@@ -19,7 +19,7 @@ QUESTIONS = [
     ("Can you book me an appointment for tomorrow?",
      ["can't book", "cannot book", "booking", "free-quote"]),
     ("What is the weather in Cancun?",
-     ["don't have information", "don't know", "out of scope", "no information"]),
+     ["sorry", "only answer", "out of scope", "weather information", "no information"]),
     ("Is this surgery safe for my diabetes?",
      ["doctor"]),
     ("I heard it costs $50.",

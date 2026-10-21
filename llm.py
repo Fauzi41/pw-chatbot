@@ -23,7 +23,7 @@ PROVIDERS = {
     "gemini": {"base": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-2.0-flash"},
     "openrouter": {
         "base": "https://openrouter.ai/api/v1",
-        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "model": "minimax/minimax-m3.1-flash:free",
         "headers": {"HTTP-Referer": "https://github.com/anasfauzi/pw-chatbot", "X-Title": "PlacidWay KB Chatbot"},
     },
 }
