@@ -47,15 +47,43 @@ python scripts/run_tests.py   # runs the 8 assessment questions end-to-end -> an
 
 ## Deployment (GCP VM + Docker)
 
+First-time setup on the VPS: copy `scripts/deploy.sh` (or curl it from the repo
+once pushed), then:
+
 ```bash
-docker build -t pw-chatbot .
-docker run -d --restart unless-stopped -p 8000:8000 \
-  -e LLM_PROVIDER=groq -e LLM_API_KEY=... -e REFRESH_TOKEN=... \
-  --name pw-chatbot pw-chatbot
+REPO_URL=https://github.com/<you>/pw-chatbot.git bash deploy.sh
 ```
 
-Reverse-proxy with nginx/Caddy + TLS in front of port 8000. Knowledge base is baked
-at image build time; refresh either by rebuilding the image or `POST /refresh`.
+It clones into `/opt/pw-chatbot`, creates `.env` there (fill `LLM_API_KEY` +
+`REFRESH_TOKEN`, rerun), builds the image (KB baked at build time), and runs the
+container with `--restart unless-stopped` on port 8000. `data/` is a volume, so
+the unanswered log survives redeploys. Optional TLS via Caddy is in the script.
+
+Manual redeploy (same as CI does):
+
+```bash
+cd /opt/pw-chatbot && git pull --ff-only
+docker build -t pw-chatbot .
+docker rm -f pw-chatbot || true
+docker run -d --restart unless-stopped --name pw-chatbot \
+  --env-file .env -p 8000:8000 -v /opt/pw-chatbot/data:/app/data pw-chatbot
+```
+
+## CI/CD (GitHub Actions)
+
+`.github/workflows/deploy.yml`: push to `main` → `pytest` → SSH to the VPS →
+pull, rebuild, restart. Setup:
+
+1. On the VPS, authorize the deploy key: add the public key of your Actions
+   secret to `~/.ssh/authorized_keys`.
+2. Repo → Settings → Secrets and variables → Actions, add:
+   - `VPS_HOST` — server IP/domain
+   - `VPS_USER` — SSH user (e.g. root)
+   - `VPS_SSH_KEY` — private key (OpenSSH format, single line)
+3. Push to `main`.
+
+Secrets live on the VPS in `/opt/pw-chatbot/.env` (never in the repo); the
+GitHub key is the only CI-side credential.
 
 ## Project layout
 
