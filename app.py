@@ -1,6 +1,7 @@
 """Flask chat UI + JSON API for the PlacidWay knowledge chatbot."""
 import json
 import os
+import re
 import time
 
 from flask import Flask, jsonify, render_template, request
@@ -13,9 +14,21 @@ app = Flask(__name__)
 QUOTE_URL = "https://www.placidway.com/profile/5/Alternative-Cancer-Treatment-by-ITC-Immunity-Therapy-Center"
 BOOKING_WORDS = ("book", "booking", "appointment", "schedule", "reserve", "reservation")
 MEDICAL_WORDS = ("safe for", "diabetes", "diagnos", "should i take", "is it safe", "recommend for me", "my condition")
+DISCLAIMER_RE = re.compile(r"medical disclaimer|not medical advice|can't provide medical advice", re.I)
 
 HISTORY_LIMIT = 6  # keep last ~6 turns for follow-ups
 kb.index = None  # set on startup / /refresh
+
+
+def split_disclaimer(text):
+    """Pull a trailing disclaimer line out so the UI can style it apart from the answer."""
+    lines = text.rstrip().split("\n")
+    if lines and DISCLAIMER_RE.search(lines[-1]):
+        disc = re.sub(r"[*_]", "", lines[-1]).strip()
+        if disc.lower().startswith("medical disclaimer"):
+            disc = "Note: " + disc.split(":", 1)[1].strip()
+        return "\n".join(lines[:-1]).strip(), disc
+    return text, None
 
 
 def refusal_for(message):
@@ -44,12 +57,12 @@ def log_unanswered(question):
 
 
 def build_answer(question, history=None):
-    """Full grounded pipeline. Returns (answer_text, sources)."""
+    """Full grounded pipeline. Returns (answer_text, disclaimer_or_None, sources)."""
     if not kb.index:
         kb.index = kb.load()
     ref = refusal_for(question)
     if ref:
-        return ref, []
+        return ref, None, []
     chunks = kb.retrieve(question, kb.index)
     if not chunks and history:  # follow-up: retry with up to 3 previous user turns
         prevs = [m["content"] for m in history if m["role"] == "user"][-3:]
@@ -61,7 +74,7 @@ def build_answer(question, history=None):
             "I don't have information about that in the PlacidWay source pages I can access — "
             "I'd rather not guess. For a free quote: "
             f"contact PlacidWay at {QUOTE_URL}"
-        ), []
+        ), None, []
     ans = llm.chat(question, history or [], chunks)
     if ans is None:  # LLM unavailable -> deterministic retrieval-only answer
         bullets = "\n".join(f"- {c['text'][:600]}\n  Source: {c['url']}" for c in chunks)
@@ -71,9 +84,9 @@ def build_answer(question, history=None):
             f"Note: I'm answering from retrieved text only (LLM not configured/available). "
             f"Confirm details on the page or via a free quote: {QUOTE_URL}"
         )
-    else:
-        return ans, chunks
-    return ans, chunks
+        return ans, None, chunks
+    ans, disc = split_disclaimer(ans)
+    return ans, disc, chunks
 
 
 @app.route("/")
@@ -93,8 +106,8 @@ def chat():
     if not message:
         return jsonify({"error": "empty message"}), 400
     history = (data.get("history") or [])[-HISTORY_LIMIT:]
-    answer, chunks = build_answer(message, history)
-    return jsonify({"answer": answer, "sources": [{"url": c["url"], "score": c["score"]} for c in chunks]})
+    answer, disclaimer, chunks = build_answer(message, history)
+    return jsonify({"answer": answer, "disclaimer": disclaimer, "sources": [{"url": c["url"], "score": c["score"]} for c in chunks]})
 
 
 @app.route("/refresh", methods=["POST"])

@@ -32,15 +32,21 @@
       const res = await fetch('/chat', {method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message, history: history.slice(-6)})});
       const data = await res.json();
-      add('bot', data.answer || 'Sorry, something went wrong.');
+      add('bot', data.answer || 'Sorry, something went wrong.', data.disclaimer);
       if (data.sources) srcEl.textContent = 'Sources: ' + [...new Set(data.sources.map(s => s.url))].join('  |  ');
       history.push({role: 'user', content: message}, {role: 'assistant', content: data.answer});
     });
-    function add(who, text) {
+    function add(who, text, disclaimer) {
       const d = document.createElement('div');
       d.className = 'msg ' + who;
       d.innerHTML = render(text);
       log.appendChild(d);
+      if (disclaimer) {
+        const dd = document.createElement('div');
+        dd.className = 'disclaimer';
+        dd.textContent = disclaimer;
+        d.appendChild(dd);
+      }
       log.scrollTop = log.scrollHeight;
     }
     function render(t) {

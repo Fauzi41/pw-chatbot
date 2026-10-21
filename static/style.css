@@ -13,3 +13,4 @@ input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; b
 button { padding: 12px 20px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; cursor: pointer; }
 .sources { color: #94a3b8; font-size: .8rem; margin-top: 8px; word-break: break-all; }
 .msg a { color: #60a5fa; word-break: break-all; }
+.disclaimer { font-size: .72rem; color: #7c8aa0; margin-top: 10px; padding-top: 8px; border-top: 1px solid #334155; }

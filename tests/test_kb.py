@@ -58,12 +58,12 @@ def test_not_in_content_path_with_llm_mocked(monkeypatch):
     monkeypatch.setattr(app.llm, "chat", fake_chat)
     pages = kb.build_index([{"url": "https://x", "text": "the weather in cancun is described nowhere here"}])
     kb.index = pages
-    ans, sources = app.build_answer("what is the weather in cancun")
+    ans, disc, sources = app.build_answer("what is the weather in cancun")
     assert sources == []
     assert "don't have information" in ans and "free quote" in ans
 
 
 def test_medical_refusal():
     kb.index = kb.build_index(PAGES)
-    ans, sources = app.build_answer("is this surgery safe for my diabetes")
+    ans, disc, sources = app.build_answer("is this surgery safe for my diabetes")
     assert "doctor" in ans and sources == []

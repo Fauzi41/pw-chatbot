@@ -43,7 +43,9 @@ def main():
              f"Generated: {__import__('time').strftime('%Y-%m-%d %H:%M:%S')}\n"]
     results = []
     for q, keys in QUESTIONS:
-        ans, chunks = app.build_answer(q, history[-6:])
+        ans, disc, chunks = app.build_answer(q, history[-6:])
+        if disc:
+            ans = ans + "\n\n" + disc + "\n"
         ok = check(q, ans, keys, mode)
         results.append(ok)
         lines.append(f"\n## Q: {q}\n\n**PASS**: {'yes' if ok else 'NO'}\n\n**Answer**:\n{ans}\n")
