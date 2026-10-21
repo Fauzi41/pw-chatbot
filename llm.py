@@ -24,7 +24,7 @@ PROVIDERS = {
     "openrouter": {
         "base": "https://openrouter.ai/api/v1",
         "model": "minimax/minimax-m3.1-flash:free",
-        "headers": {"HTTP-Referer": "https://github.com/anasfauzi/pw-chatbot", "X-Title": "PlacidWay KB Chatbot"},
+        "headers": {"HTTP-Referer": "https://github.com/Fauzi41/pw-chatbot", "X-Title": "PlacidWay KB Chatbot"},
     },
 }
 

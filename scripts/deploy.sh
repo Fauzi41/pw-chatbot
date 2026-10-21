@@ -4,7 +4,7 @@
 set -euo pipefail
 
 APP_DIR=/opt/pw-chatbot
-REPO="${REPO_URL:-https://github.com/anasfauzi/pw-chatbot.git}"
+REPO="${REPO_URL:-https://github.com/Fauzi41/pw-chatbot.git}"
 IMAGE=pw-chatbot
 PORT=8000
 
