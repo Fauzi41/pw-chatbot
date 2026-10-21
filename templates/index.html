@@ -7,14 +7,24 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <header>
+    <div class="wrap">
+      <img class="logo" src="/static/placidway-logo.png" alt="PlacidWay">
+      <div>
+        <h1>Knowledge Chatbot</h1>
+        <p class="sub">Grounded in PlacidWay pages · ITC Immunity Therapy Center, Tijuana · Not medical advice</p>
+      </div>
+    </div>
+  </header>
   <main>
-    <h1>ITC Immunity Therapy Center — Knowledge Chatbot</h1>
-    <p class="sub">Answers grounded in PlacidWay pages (prices, packages, clinic info). Not medical advice.</p>
-    <div id="log" aria-live="polite">
-      <div class="msg bot">Hello! Ask me about the ITC alternative cancer treatment packages in Tijuana, prices, or what's included.</div>
+    <div id="log" aria-live="polite"></div>
+    <div class="suggest">
+      <button class="chip" data-q="How much does adenocarcinoma cancer treatment cost in Tijuana?">Cost of treatment</button>
+      <button class="chip" data-q="What is included in the adrenal cancer treatment package?">What's included</button>
+      <button class="chip" data-q="Is alternative cancer treatment cheaper in Tijuana or in the USA?">Tijuana vs USA</button>
     </div>
     <form id="form">
-      <input id="input" type="text" autocomplete="off" placeholder="e.g. How much does adenocarcinoma treatment cost?" required>
+      <input id="input" type="text" autocomplete="off" placeholder="Ask about packages, prices, inclusions…" required>
       <button type="submit">Send</button>
     </form>
     <div class="sources" id="sources"></div>
@@ -23,19 +33,33 @@
     const log = document.getElementById('log'), form = document.getElementById('form'),
           input = document.getElementById('input'), srcEl = document.getElementById('sources');
     let history = [];
-    form.addEventListener('submit', async (e) => {
+
+    add('bot', 'Hello! Ask me about the ITC alternative cancer treatment packages in Tijuana, prices, or what\'s included.');
+    document.querySelectorAll('.chip').forEach(c =>
+      c.addEventListener('click', () => send(c.dataset.q)));
+
+    form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const message = input.value.trim();
+      send(input.value.trim());
+    });
+
+    async function send(message) {
       if (!message) return;
-      add('user', message);
       input.value = '';
+      add('user', message);
       const res = await fetch('/chat', {method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message, history: history.slice(-6)})});
       const data = await res.json();
       add('bot', data.answer || 'Sorry, something went wrong.', data.disclaimer);
-      if (data.sources) srcEl.textContent = 'Sources: ' + [...new Set(data.sources.map(s => s.url))].join('  |  ');
+      if (data.sources && data.sources.length) {
+        const uniq = [...new Set(data.sources.map(s => s.url))];
+        srcEl.innerHTML = 'Sources: ' + uniq.map(u =>
+          '<a href="' + u + '" target="_blank" rel="noopener">' + u.replace(/^https?:\/\/[^/]+\//, '…/') + '</a>'
+        ).join('  ·  ');
+      }
       history.push({role: 'user', content: message}, {role: 'assistant', content: data.answer});
-    });
+    }
+
     function add(who, text, disclaimer) {
       const d = document.createElement('div');
       d.className = 'msg ' + who;
@@ -49,6 +73,7 @@
       }
       log.scrollTop = log.scrollHeight;
     }
+
     function render(t) {
       return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')

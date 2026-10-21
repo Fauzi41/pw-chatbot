@@ -14,7 +14,11 @@ app = Flask(__name__)
 QUOTE_URL = "https://www.placidway.com/profile/5/Alternative-Cancer-Treatment-by-ITC-Immunity-Therapy-Center"
 BOOKING_WORDS = ("book", "booking", "appointment", "schedule", "reserve", "reservation")
 MEDICAL_WORDS = ("safe for", "diabetes", "diagnos", "should i take", "is it safe", "recommend for me", "my condition")
-DISCLAIMER_RE = re.compile(r"medical disclaimer|not medical advice|can't provide medical advice", re.I)
+DISCLAIMER_RE = re.compile(
+    r"^\s*disclaimer\b|medical disclaimer|not medical advice|can't provide medical advice"
+    r"|saran medis|nasihat medis|consejo m[ée]dico|avis m[ée]dical|medizinische beratung",
+    re.I,
+)
 
 HISTORY_LIMIT = 6  # keep last ~6 turns for follow-ups
 kb.index = None  # set on startup / /refresh
@@ -25,8 +29,8 @@ def split_disclaimer(text):
     lines = text.rstrip().split("\n")
     if lines and DISCLAIMER_RE.search(lines[-1]):
         disc = re.sub(r"[*_]", "", lines[-1]).strip()
-        if disc.lower().startswith("medical disclaimer"):
-            disc = "Note: " + disc.split(":", 1)[1].strip()
+        disc = re.sub(r"^\s*disclaimer\s*:?\s*", "Note: ", disc, flags=re.I)
+        disc = re.sub(r"^\s*medical\s+disclaimer\s*:?\s*", "Note: ", disc, flags=re.I)
         return "\n".join(lines[:-1]).strip(), disc
     return text, None
 

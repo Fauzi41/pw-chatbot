@@ -1,16 +1,109 @@
-:root { color-scheme: light dark; }
+:root {
+  --primary: #E85A4F;
+  --primary-press: #cf4a3f;
+  --primary-soft: #FDEFEE;
+  --ink: #18120f;
+  --text: #3a312c;
+  --muted: #6f6258;
+  --line: #EEEEEE;
+  --surface: #ffffff;
+  --bg: #fffdf9;
+  --link: #cf4a3f;
+}
 * { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
-main { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
-h1 { font-size: 1.4rem; }
-.sub { color: #94a3b8; font-size: .9rem; margin-top: -8px; }
-#log { height: 60vh; overflow-y: auto; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin: 16px 0; }
-.msg { margin: 8px 0; padding: 10px 12px; border-radius: 10px; max-width: 85%; white-space: pre-wrap; }
-.bot { background: #1e293b; border: 1px solid #334155; }
-.user { background: #1d4ed8; margin-left: auto; }
-form { display: flex; gap: 8px; }
-input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: inherit; }
-button { padding: 12px 20px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; cursor: pointer; }
-.sources { color: #94a3b8; font-size: .8rem; margin-top: 8px; word-break: break-all; }
-.msg a { color: #60a5fa; word-break: break-all; }
-.disclaimer { font-size: .72rem; color: #7c8aa0; margin-top: 10px; padding-top: 8px; border-top: 1px solid #334155; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+  position: sticky; top: 0; z-index: 2;
+}
+header .wrap {
+  max-width: 820px; margin: 0 auto; padding: 0 16px;
+  display: flex; align-items: center; gap: 14px;
+}
+.logo { height: 40px; width: auto; }
+header h1 { font-size: 1.05rem; color: var(--ink); margin: 0; }
+header .sub { font-size: .78rem; color: var(--muted); margin: 2px 0 0; }
+main {
+  flex: 1;
+  max-width: 820px; width: 100%; margin: 0 auto;
+  padding: 20px 16px 12px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+#log {
+  flex: 1;
+  max-height: 56vh; min-height: 300px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 4px 2px;
+}
+.msg {
+  max-width: 78%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  line-height: 1.5;
+  font-size: .95rem;
+  word-break: break-word;
+}
+.bot {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 6px;
+  box-shadow: 0 1px 3px rgba(24, 18, 15, .05);
+  align-self: flex-start;
+}
+.user {
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+  align-self: flex-end;
+  box-shadow: 0 4px 14px rgba(232, 90, 79, .25);
+}
+.msg a { color: var(--link); word-break: break-all; }
+.user a { color: #fff; text-decoration: underline; }
+.disclaimer {
+  font-size: .72rem; color: var(--muted);
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text); font-size: .82rem;
+  padding: 8px 14px; border-radius: 999px;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+form {
+  display: flex; gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 6px 6px 20px;
+  box-shadow: 0 4px 16px rgba(24, 18, 15, .07);
+}
+input {
+  flex: 1; border: 0; outline: none; background: transparent;
+  font-size: .95rem; color: var(--ink); padding: 10px 0;
+}
+button {
+  border: 0; border-radius: 999px;
+  background: var(--primary); color: #fff;
+  padding: 12px 26px; font-size: .92rem; font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+button:hover { background: var(--primary-press); }
+.sources { color: var(--muted); font-size: .76rem; word-break: break-all; }
+.sources a { color: var(--muted); }
