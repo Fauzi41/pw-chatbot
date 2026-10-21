@@ -51,10 +51,10 @@ def build_answer(question, history=None):
     if ref:
         return ref, []
     chunks = kb.retrieve(question, kb.index)
-    if not chunks and history:  # follow-up question: retry with previous turn
-        prev = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
-        if prev:
-            chunks = kb.retrieve(f"{prev} {question}", kb.index)
+    if not chunks and history:  # follow-up: retry with up to 3 previous user turns
+        prevs = [m["content"] for m in history if m["role"] == "user"][-3:]
+        if prevs:
+            chunks = kb.retrieve(" ".join(prevs + [question]), kb.index)
     if not chunks:
         log_unanswered(question)
         return (

@@ -13,7 +13,7 @@ STOPWORDS = {
     "but", "so", "can", "do", "does", "did", "about", "what", "how", "much", "many",
 }
 
-MIN_SCORE = 0.05  # below this, retrieval is treated as "not found"
+MIN_SCORE = 2.0  # below this, retrieval is treated as "not found" (calibrated: junk ~1.9, real hits 4.9+)
 PRICE_RE = re.compile(r"[$€£]\s?\d")
 PRICE_BOOST = 3.0  # added when a cost question hits a chunk containing a price
 PRICE_INTENT_RE = re.compile(r"(cost|price|pricing|how much|cheap)")
