@@ -72,7 +72,7 @@ def build_answer(question, history=None):
             f"Confirm details on the page or via a free quote: {QUOTE_URL}"
         )
     else:
-        ans = ans + f"\n\n*Grounded in {QUOTE_URL} pages. For a free quote: {QUOTE_URL}*"
+        return ans, chunks
     return ans, chunks
 
 

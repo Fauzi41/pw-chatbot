@@ -12,3 +12,4 @@ form { display: flex; gap: 8px; }
 input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: inherit; }
 button { padding: 12px 20px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; cursor: pointer; }
 .sources { color: #94a3b8; font-size: .8rem; margin-top: 8px; word-break: break-all; }
+.msg a { color: #60a5fa; word-break: break-all; }
