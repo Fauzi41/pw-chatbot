@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlacidWay ITC Knowledge Chatbot</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <h1>ITC Immunity Therapy Center — Knowledge Chatbot</h1>
+    <p class="sub">Answers grounded in PlacidWay pages (prices, packages, clinic info). Not medical advice.</p>
+    <div id="log" aria-live="polite">
+      <div class="msg bot">Hello! Ask me about the ITC alternative cancer treatment packages in Tijuana, prices, or what's included.</div>
+    </div>
+    <form id="form">
+      <input id="input" type="text" autocomplete="off" placeholder="e.g. How much does adenocarcinoma treatment cost?" required>
+      <button type="submit">Send</button>
+    </form>
+    <div class="sources" id="sources"></div>
+  </main>
+  <script>
+    const log = document.getElementById('log'), form = document.getElementById('form'),
+          input = document.getElementById('input'), srcEl = document.getElementById('sources');
+    let history = [];
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+      add('user', message);
+      input.value = '';
+      const res = await fetch('/chat', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message, history: history.slice(-6)})});
+      const data = await res.json();
+      add('bot', data.answer || 'Sorry, something went wrong.');
+      if (data.sources) srcEl.textContent = 'Sources: ' + [...new Set(data.sources.map(s => s.url))].join('  |  ');
+      history.push({role: 'user', content: message}, {role: 'assistant', content: data.answer});
+    });
+    function add(who, text) {
+      const d = document.createElement('div');
+      d.className = 'msg ' + who;
+      d.textContent = text;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+    }
+  </script>
+</body>
+</html>

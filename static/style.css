@@ -1,0 +1,14 @@
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+h1 { font-size: 1.4rem; }
+.sub { color: #94a3b8; font-size: .9rem; margin-top: -8px; }
+#log { height: 60vh; overflow-y: auto; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin: 16px 0; }
+.msg { margin: 8px 0; padding: 10px 12px; border-radius: 10px; max-width: 85%; white-space: pre-wrap; }
+.bot { background: #1e293b; border: 1px solid #334155; }
+.user { background: #1d4ed8; margin-left: auto; }
+form { display: flex; gap: 8px; }
+input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: inherit; }
+button { padding: 12px 20px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; cursor: pointer; }
+.sources { color: #94a3b8; font-size: .8rem; margin-top: 8px; word-break: break-all; }
