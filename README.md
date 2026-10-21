@@ -68,7 +68,7 @@ It clones into `/opt/pw-chatbot`, creates `.env` there (fill `LLM_API_KEY` +
 container with `--restart unless-stopped` on port 8000. `data/` is a volume, so
 the unanswered log survives redeploys. Optional TLS via Caddy is in the script.
 
-Manual redeploy (same as CI does):
+Manual redeploy:
 
 ```bash
 cd /opt/pw-chatbot && git pull --ff-only
@@ -77,22 +77,6 @@ docker rm -f pw-chatbot || true
 docker run -d --restart unless-stopped --name pw-chatbot \
   --env-file .env -p 8000:8000 -v /opt/pw-chatbot/data:/app/data pw-chatbot
 ```
-
-## CI/CD (GitHub Actions)
-
-`.github/workflows/deploy.yml`: push to `main` → `pytest` → SSH to the VPS →
-pull, rebuild, restart. Setup:
-
-1. On the VPS, authorize the deploy key: add the public key of your Actions
-   secret to `~/.ssh/authorized_keys`.
-2. Repo → Settings → Secrets and variables → Actions, add:
-   - `VPS_HOST` — server IP/domain
-   - `VPS_USER` — SSH user (e.g. root)
-   - `VPS_SSH_KEY` — private key (OpenSSH format, single line)
-3. Push to `main`.
-
-Secrets live on the VPS in `/opt/pw-chatbot/.env` (never in the repo); the
-GitHub key is the only CI-side credential.
 
 ## Project layout
 
@@ -106,21 +90,6 @@ scripts/run_tests.py   the 8 assessment questions, end to end
 tests/test_kb.py       unit tests
 static/ templates/     minimal chat UI
 ```
-
-## Write-up: limitations & next week
-
-Known limitations:
-- BM25 is lexical — synonyms/phrasings that share no words with the source (
-  "how pricey is it") can miss. Embedding/hybrid retrieval is the upgrade path.
-- Package prices float on the page as "starting from $18,995"; the bot repeats
-  exact page wording with currency, but no structured price-table extraction.
-- Single-process gunicorn (1 worker) — fine for review traffic; scale-out
-  needs a shared KV cache or stateless retrieval.
-
-With another week: hybrid BM25+embeddings (e.g. `all-MiniLM` local model, still
-free), a price-extraction sanity test in CI comparing page prices against the
-last ingest, streaming answers, and a small SQLite store for the unanswered-questions
-log with a review UI for finding content gaps.
 
 ## Honesty policy (enforced)
 
